@@ -3,7 +3,7 @@ This EdgeWorker is designed to protect an Akamaized site using OpenID Connect (O
 
 The flow is as follows:-
 
-![Flow Diagram](OpenID Connect with Google.png)
+![Flow Diagram](OpenID%20Connect%20with%20Google.png)
 
 ## Components
 - Akamai Edge Server (Running this Edgeworker and a Property Manager configuration
