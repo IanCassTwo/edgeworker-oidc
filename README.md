@@ -1,15 +1,15 @@
-# OpenID connect with OneLogin at the Akamai Edge
+# OpenID Connect at the Akamai Edge
 This EdgeWorker can be used as a sample or starting point of how to perform IDP integration at the Edge using OpenID Connect to the OneLogin IDP.
 
 To be used as sample code. Lots of topics not implemented yet, amongs others:
 - Logout
-- Other IDP providers (like github)
+- Other IDP providers (tested with Google)
 - More fine-grained authorization
 
 Consider this as sample code, Work In Progress
 
 ## Components
-- Identity Provider, for example OneLogin
+- Identity Provider, for example Google
 - Application delivered via Akamai
 - Origin with protected content, can be static storage like NetStorage or S3
 - EdgeWorker to implement authentication logic
@@ -32,68 +32,52 @@ For the sake of clearity the following example endpoints are used in the documen
 1. Application domain
    - Example: application.example.com
    - The EdgeWorker is available via /oidc/
-1. OIDCsupport internal domain
-   - Example: oidcsupport.example.com
    - The IDP is proxied via /onelogin/
 1. IDP domain
-   - Example: example.onelogin.com
+   - Example: oauth2.googleapis.com
 
 ## IDP provider
-The application needs to be configured at the IDP provider. Example for onelogin:
+The application needs to be configured at the IDP provider. Example for Google:
+https://developers.google.com/identity/protocols/oauth2/openid-connect
 1. IDP domain
-   - Example: https://example.onelogin.com, this will result in the following URL's to be used from the application
-      - Authentication URL - https://example.onelogin.com/oidc/2/auth
-      - Token URL - https: https://example.onelogin.com/oidc/2/token
+   - Authentication URL - https://accounts.google.com/o/oauth2/v2/auth
+   - Token URL - https://oauth2.googleapis.com/token
 1. Application Configuration
    - Login URL - https://application.example.com/oidc/login
    - Redirect URL - https://application.example.com/oidc/callback
+   - Token URL - https://application.example.com/oidc/token - should proxy to https://oauth2.googleapis.com/token
 1. IDP configuration
    - SSO
       - ClientID (OIDC_CLIENTID)
       - Client secret (OIDC_SECRET)
-      - Token Endpoint - Authentication Method: POST
 
 ## EdgeWorker
 Multiple endpoints are defined in the EdgeWorker and needs to be changed in the responseProvider
 1. oidcContext.auth
-   - Authentication URL - https://example.onelogin.com/oidc/2/auth
-1. oidcContext.token
-   - Token URL proxied via oidcsupport - https://oidcsupport.example.com/onelogin/oidc/2/token
-1. oidcContext.service
-   - Service URL at oidcsupprt for services to be delegated to property manager - https://oidcsupport.example.com/service
+   - Authentication URL - https://accounts.google.com/o/oauth2/v2/auth
 
 ## Property Manager - application
 The application involves the EdgeWorker only during login time. When a valid and not-expired token is available access will be granted without involvement of the EdgeWorker.
+
 ### Variables
 User defined variables are required in order to share the required credentials with the EdgeWorker.
 1. OIDC_AKSECRET - The key used to generate the token
 1. OIDC_CLIENTID - The client id of the OpenID provider
 1. OIDC_SECRET - The secret to be used in combination with the client id 
+
 ### Rules
-At the application level their needs to be two rules:
+At the application level their needs the following rules:
 1. An unprotected path to involve the EdgeWorker
    - IF path matches /oidc/*
       - Edgeworker
-1. Protected area's are protected using an Akamai token (using the key as specified in OIDC_AKSECRET)
+1. Protected area's are protected using an Akamai token (using the key as specified in OIDC_AKSECRET). Note, salt should be specified as the domain name for the organization so that you can't use any Google account to log in
    - IF NOT path matches /oidc/*
       - Validate token
       - IF NOT valid token
          - Redirect /oidc/login?url=urlEncode(URL)
-   
-## Property Manager - oidcsupport
-A second property manager configuration is required to support the EdgeWorker. This configuration can be shared between applications. 
-
-### Proxy to the IDP
-For every IDP an endpoint needs to be configured with its own origin (Forward host header:origin) and the path prefix should be removed.
-- IF path matches /onelogin/*
-   - origin: example.onelogin.com (forward host header = origin host header)
-   - remove path prefix
-
-### Microservices
-Microservices have to be defined for Akamai specific tasks that have to be performed in an Akamai Configuration.
-- /service/generatetoken (uses header token-key with the secret)
-
-As token generation requires professional services this rule has to be created by your Akamai team.
+1. If path matches /oidc/token
+    - Origin = https://oauth2.googleapis.com/token
+    - Path overriden to "/token"
 
 
 
