@@ -2,7 +2,7 @@
 (c) Copyright 2021 Akamai Technologies, Inc. Licensed under Apache 2 license.
 
 Version: 1.1
-Purpose:  OIDC/onelogin - login  verification at the edge
+Purpose:  OpenID Connect login  verification at the edge
 
 */
 /// <reference types="akamai-edgeworkers"/>
@@ -10,6 +10,8 @@ import { httpRequest } from 'http-request';
 import { createResponse } from 'create-response';
 import URLSearchParams from 'url-search-params'; 
 import { Cookies, SetCookie } from 'cookies';
+import { EdgeAuth } from "auth/edgeauth.js";
+
 
 // Utilities - randomstring
 function randomString(len) {
@@ -83,7 +85,7 @@ async function oidcLogin(oidcContext, request) {
   cookList.push(newCookie('nonce', nonce, oidcContext.basedir).toHeader());
   
   responseHeaders["set-cookie"] = cookList;
-  responseHeaders.location = [ `${oidcContext.auth}?client_id=${oidcContext.clientId}&nonce=${nonce}&redirect_uri=${oidcContext.redirect}&response_type=code&scope=openid` ];
+  responseHeaders.location = [ `${oidcContext.auth}?client_id=${oidcContext.clientId}&nonce=${nonce}&redirect_uri=${oidcContext.redirect}&response_type=code&scope=openid+email` ];
   return Promise.resolve(createResponse(302, responseHeaders, ''));
 }
 
@@ -106,7 +108,7 @@ async function oidcCallback (oidcContext, request) {
     // Retrieve tokens for the code as passed in
     const tokenParams = `grant_type=authorization_code&redirect_uri=${oidcContext.redirect}&code=${code}`;
     const credentials = `client_id=${oidcContext.clientId}&client_secret=${oidcContext.clientSecret}`;
-    var tokenResponse = await httpRequest(oidcContext.token, {
+    var tokenResponse = await httpRequest(`${request.scheme}://${request.host}${oidcContext.basedir}/token`, {
           method: "POST",
           headers: { "Content-Type": ["application/x-www-form-urlencoded"]},
           body: `${tokenParams}&${credentials}`
@@ -123,14 +125,21 @@ async function oidcCallback (oidcContext, request) {
         return Promise.resolve(createResponse(403,{}, 'Nonce failed'));
 
       // Set cookie: Access token
-      newCookies.push(newCookie('access_token', tokenResult.access_token, '/').toHeader());
+      // newCookies.push(newCookie('access_token', tokenResult.access_token, '/').toHeader());
 
-      // Set cookie: Akamai token
-      var tokenurl = `${oidcContext.service}/generatetoken?acl=/*&seconds=${tokenResult.expires_in}`;
-      const tokenservice = await httpRequest(tokenurl, {headers: {"token-key": oidcContext.akamaiSecret}});
-      
-      var akamaitoken = await tokenservice.text();
-      if (tokenservice.ok) {
+        // Create the Akamai token
+        var token_start_time = Math.trunc(Date.now() / 1000);
+        var acl = ["/*"];
+        var akamaitoken = "empty"
+        var ea = new EdgeAuth({
+          key: oidcContext.akamaiSecret,
+          startTime: token_start_time,
+          windowSeconds: tokenResult.expires_in,
+          salt: jwtId.payload.hd,
+          payload: jwtId.payload.email,
+          escapeEarly: true,
+        });
+        akamaitoken = ea.generateACLToken(acl);
         newCookies.push(newCookie('__token__', akamaitoken, '/').toHeader());
 
         // Redirect if we can
@@ -147,13 +156,6 @@ async function oidcCallback (oidcContext, request) {
 
         //Details send back
         return Promise.resolve(createResponse(tokenResponse.status, {'Set-Cookie': newCookies}, JSON.stringify(tokenResult)));
-      } else {
-        failureStatus = tokenservice.status;
-        failureContent.error = 'akamaitoken_faiure';
-        failureContent.description = 'token generation indicates error';
-        failureContent.details = akamaitoken;
-        failureContent.url = tokenurl;
-      }
     } else {
       // not tokenResponse.ok, use text instead of JSON as the response is not always JSON
       var x = await tokenResponse.text();
@@ -165,7 +167,7 @@ async function oidcCallback (oidcContext, request) {
         failureStatus = tokenResponse.status;      
         failureContent.description = "callback received indicates error";
         failureContent.details = x;
-        failureContent.path = oidcContext.token;
+        failureContent.path = `${request.scheme}://${request.host}${oidcContext.basedir}/token`
         failureContent.params = tokenParams;  
       }
     }
@@ -186,18 +188,12 @@ export async function responseProvider (request) {
   oidcContext.base = oidcContext.basedir.slice(1,-1).replaceAll('/','_').toUpperCase();
   oidcContext.redirect = `https://${request.host}${oidcContext.basedir}callback`;
 
-  //Client info and secrets are stored in property manager
+  // Property Manager variables
   oidcContext.akamaiSecret = request.getVariable(`PMUSER_${oidcContext.base}_AKSECRET`);
   oidcContext.clientId = request.getVariable(`PMUSER_${oidcContext.base}_CLIENTID`);
   oidcContext.clientSecret = request.getVariable(`PMUSER_${oidcContext.base}_SECRET`);
-
-  //onelogin endpoints direct and via akamai
-  oidcContext.auth='https://example.onelogin.com/oidc/2/auth';
-  oidcContext.token='https://oidcsupport.example.com/onelogin/oidc/2/token';
+  oidcContext.auth = request.getVariable(`PMUSER_${oidcContext.base}_AUTH_URL`);
   
-  //services to be used
-  oidcContext.service = 'https://oidcsupport.example.com/service';
-
   if (request.path.endsWith('/login')) {
     return oidcLogin(oidcContext, request);
   }

@@ -1,4 +1,4 @@
 {
-  "edgeworker-version": "0.2",
-  "description": "OIDC via 1Login"
+  "edgeworker-version": "0.22",
+  "description": "OpenID Connect"
 }
