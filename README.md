@@ -1,40 +1,25 @@
 # OpenID Connect at the Akamai Edge
-This EdgeWorker can be used as a sample or starting point of how to perform IDP integration at the Edge using OpenID Connect.
+This EdgeWorker is designed to protect an Akamaized site using OpenID Connect (OIDC) in combination with Akamai Token Authentication.
 
-To be used as sample code. Lots of topics not implemented yet, amongs others:
-- Logout
-- Other IDP providers (tested with Google)
-- More fine-grained authorization (currently allows anyone from the same org)
+The flow is as follows:-
 
-Consider this as sample code, Work In Progress
+![Flow Diagram](OpenID Connect with Google.png)
 
 ## Components
+- Akamai Edge Server (Running this Edgeworker and a Property Manager configuration
 - Identity Provider, for example Google
-- Application delivered via Akamai
-- Origin with protected content, can be static storage like NetStorage or S3
-- EdgeWorker to implement authentication logic
-- Proxy to Identity Provider
 
 ## EdgeWorker resources
 The EdgeWorker currently supports the following resources:
+
 ### /.../login?url=redirect-url
 Initiate the login process.
 
 Parameters:
 - url: Used upon successful login to redirect to the original requested url. Default /
-   - Special value: debug_block - the callback will not be performed (give the developer to do the callback locally using the sandbox)
-   - Special value: debug_info - instead of redirect detailed information about the response of the callback will be provided.
+- 
 ### /.../callback?code=authorization-code
-Used upon succesful authentication at the IDP to request the JWT tokens, create the akamai_token and perform the redirect to the origal requested url.
-
-# Configuration
-For the sake of clearity the following example endpoints are used in the documentation and configuration files
-1. Application domain
-   - Example: application.example.com
-   - The EdgeWorker is available via /oidc/
-   - The IDP is proxied via /onelogin/
-1. IDP domain
-   - Example: oauth2.googleapis.com
+Used upon successful authentication at the IDP to request the JWT tokens, create the akamai_token and perform the redirect to the original requested url.
 
 ## IDP provider
 The application needs to be configured at the IDP provider. Example for Google:
@@ -77,7 +62,10 @@ At the application level their needs the following rules:
 
 
 
-
+To be used as sample code. Lots of topics not implemented yet, amongs others:
+- Logout
+- Other IDP providers (tested with Google)
+- More fine-grained authorization (currently allows anyone from the same org)
 
 
 
