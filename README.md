@@ -4,7 +4,7 @@ This EdgeWorker can be used as a sample or starting point of how to perform IDP 
 To be used as sample code. Lots of topics not implemented yet, amongs others:
 - Logout
 - Other IDP providers (tested with Google)
-- More fine-grained authorization
+- More fine-grained authorization (currently allows anyone from the same org)
 
 Consider this as sample code, Work In Progress
 
