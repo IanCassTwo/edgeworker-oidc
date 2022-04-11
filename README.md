@@ -51,11 +51,6 @@ https://developers.google.com/identity/protocols/oauth2/openid-connect
       - ClientID (OIDC_CLIENTID)
       - Client secret (OIDC_SECRET)
 
-## EdgeWorker
-Multiple endpoints are defined in the EdgeWorker and needs to be changed in the responseProvider
-1. oidcContext.auth
-   - Authentication URL - https://accounts.google.com/o/oauth2/v2/auth
-
 ## Property Manager - application
 The application involves the EdgeWorker only during login time. When a valid and not-expired token is available access will be granted without involvement of the EdgeWorker.
 
@@ -64,6 +59,7 @@ User defined variables are required in order to share the required credentials w
 1. OIDC_AKSECRET - The key used to generate the token
 1. OIDC_CLIENTID - The client id of the OpenID provider
 1. OIDC_SECRET - The secret to be used in combination with the client id 
+1. OIDC_AUTH_URL - The url for authentication with the IdP
 
 ### Rules
 At the application level their needs the following rules:
