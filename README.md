@@ -5,6 +5,8 @@ The flow is as follows:-
 
 ![Flow Diagram](OpenID%20Connect%20with%20Google.png)
 
+Note, this example code uses Google as the IdP but it's expected that it can be easily swapped out for any OIDC IdP.
+
 ## Components
 - Akamai Edge Server (Running this Edgeworker and a Property Manager configuration
 - Identity Provider, for example Google
