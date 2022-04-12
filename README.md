@@ -1,4 +1,4 @@
-# OpenID Connect at the Akamai Edge
+# Google OpenID Connect at the Akamai Edge
 This EdgeWorker is designed to protect an Akamaized site using OpenID Connect (OIDC) in combination with Akamai Token Authentication. The Akamai Authentication token is presented as a cookie and is created upon successful authentication by your IdP. The first time you access, you'd expect to follow the "Invalid Token" flow to log in, then your access would continue unhindered until the token expires.
 
 The flow is as follows:-
