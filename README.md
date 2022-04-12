@@ -65,7 +65,7 @@ At the application level their needs the following rules:
 To be used as sample code. Lots of topics not implemented yet, amongs others:
 - Logout
 - Other IDP providers (tested with Google)
-- More fine-grained authorization (currently allows anyone from the same org)
+- More fine-grained authorization. This Edgeworker currently allows anyone from the same org to access. It does not check per-user permission.
 
 
 
