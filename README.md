@@ -3,7 +3,7 @@ This EdgeWorker is designed to protect an Akamaized site using OpenID Connect (O
 
 The flow is as follows:-
 
-![Flow Diagram](OpenID%20Connect%20with%20Google.png)
+![Flow Diagram](images/flow.png)
 
 Note, this example code uses Google as the IdP but it's expected that it can be easily swapped out for any OIDC IdP.
 
