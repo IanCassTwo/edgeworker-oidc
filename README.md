@@ -61,6 +61,7 @@ At the application level their needs the following rules:
 1. An unprotected path to involve the EdgeWorker
    - IF path matches /oidc/*
       - Edgeworker
+      - Cache Rule = no-store (to make sure Set-Cookie gets returned)
 1. Protected area's are protected using an Akamai token (using the key as specified in OIDC_AKSECRET). Note, if using Google, salt should be specified as the domain name for the organization so that you can't use any Google account to log in. You can leave this blank for Azure
    - IF NOT path matches /oidc/*
       - Validate token
