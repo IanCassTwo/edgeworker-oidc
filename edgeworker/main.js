@@ -140,7 +140,10 @@ async function oidcCallback (oidcContext, request) {
           escapeEarly: true,
         });
         akamaitoken = ea.generateACLToken(acl);
-        newCookies.push(newCookie('__token__', akamaitoken, '/').toHeader());
+
+	var tok = newCookie('__token__', akamaitoken, '/');
+	tok.maxAge = tokenResult.expires_in;
+        newCookies.push(tok.toHeader());
 
         // Redirect if we can
         if (redirecturl !== "debug_info") {
