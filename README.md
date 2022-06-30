@@ -27,7 +27,7 @@ https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oid
    - Token URL - https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
 
 ## Edgeworker
-Download this repository. Tar and gzip the contents of the "edgeworker" folder and deploy to Akamai. https://techdocs.akamai.com/edgeworkers/docs/create-a-code-bundle
+Download this repository. Tar and gzip the contents of the "edgeworker" folder, and deploy to Akamai using a "dynamic compute" resource tier. https://techdocs.akamai.com/edgeworkers/docs/create-a-code-bundle
 
 ## Property Manager
 Some rules are required to be added to Property Manager to enforce authentication. The EdgeWorker is only invoked during login time. When a valid Akamai Edge Token is available, access will be granted without involvement of the EdgeWorker.
