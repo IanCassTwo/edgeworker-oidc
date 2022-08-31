@@ -4,7 +4,7 @@
 
 This EdgeWorker is designed to protect an Akamaized site using OpenID Connect (OIDC) in combination with Akamai Token Authentication. This particular recipe is for a Single Sign On site for your whole domain. Initial configuration is a little more involved but once set up, it's easier to add more sites.
 
-aAfter successful authentication by your IdP, an Akamai Authentication token is sent as a cookie to your browser. The first time you access, you'd expect to follow the "Invalid Token" flow to log in, then your access would continue unhindered until the token expires.
+After successful authentication by your IdP, an Akamai Authentication token is sent as a cookie to your browser. The first time you access, you'd expect to follow the "Invalid Token" flow to log in, then your access would continue unhindered until the token expires.
 
 The flow is as follows:-
 
