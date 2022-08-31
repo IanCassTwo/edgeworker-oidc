@@ -2,14 +2,17 @@
 
 **DISCLAIMER: This code is designed to be used as an example only. No guarantees are made that it's fit for purpose. It's not production ready and should not be used to protect critical resources**
 
-This EdgeWorker is designed to protect an Akamaized site using OpenID Connect (OIDC) in combination with Akamai Token Authentication. The Akamai Authentication token is presented as a cookie and is created upon successful authentication by your IdP. The first time you access, you'd expect to follow the "Invalid Token" flow to log in, then your access would continue unhindered until the token expires.
+This EdgeWorker is designed to protect an Akamaized site using OpenID Connect (OIDC) in combination with Akamai Token Authentication. This particular recipe is for a Single Sign On site for your whole domain. Initial configuration is a little more involved but once set up, it's easier to add more sites.
+
+aAfter successful authentication by your IdP, an Akamai Authentication token is sent as a cookie to your browser. The first time you access, you'd expect to follow the "Invalid Token" flow to log in, then your access would continue unhindered until the token expires.
 
 The flow is as follows:-
 
 ![Flow Diagram](images/flow.png)
 
 ## Components
-- Akamai Property Manager Configuration
+- Akamai Property Manager Configuration for your site
+- A New Akamai Property Manager Configuration for the login endpoint
 - Akamai Edgeworker
 - An OpenID Connect Identity Provider, for example Google or Azure
 
@@ -29,8 +32,23 @@ https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oid
 ## Edgeworker
 Download this repository. Tar and gzip the contents of the "edgeworker" folder, and deploy to Akamai using a "dynamic compute" resource tier. https://techdocs.akamai.com/edgeworkers/docs/create-a-code-bundle
 
-## Property Manager
-Some rules are required to be added to Property Manager to enforce authentication. The EdgeWorker is only invoked during login time. When a valid Akamai Edge Token is available, access will be granted without involvement of the EdgeWorker.
+## Your Existing Property Manager Property
+A new rule will need to be added to your existing Property Manager property to enforce token authentication and to redirect to the login site if there's no valid token
+
+### Rules
+1) Create a rule called "Token Validation". You don't need any match conditions.
+![Token Validation](images/tokennomatch.png)
+
+6. Create a child rule of "Token Validation" called "Not Valid?"
+   - IF NOT valid token
+      - Redirect https://login.domain.com/oidc/login?url=https://{{builtin.AH_HOST}}{{builtin.AK_URL}}
+
+![Token Failure](images/tokenfail2.png)
+
+## New Property Manager Property for Login Site
+A new Property Manager configuration will need to be set up for the Login site. You can use Netstorage as the origin serving a placeholder home page. You'll also need to create a new certificate for this site in Akamai Control Panel.
+
+Other than the basic configuration, you'll need to add specific configuraton as described below.
 
 ### Variables
 Property Manager Variables are required to be added in order to share the required credentials with the EdgeWorker. These should be configured as "hidden". Do not set these to "sensitive" or the Edge Worker will not be able to access them. Do not leave them as "visible" or anyone can view them using Akamai Debug Headers
@@ -44,8 +62,7 @@ Property Manager Variables are required to be added in order to share the requir
 ### Rules
 Property Manager should be configured like so:-
 
-1. Create an empty rule called "Authentication"
-2. Create a child rule of "Authentication" called "Edgeworker"
+1. Create an empty rule called "Edgeworker"
    - IF path matches /oidc/*
       - Edgeworkers behaviour
       - Allow POST
@@ -53,19 +70,7 @@ Property Manager should be configured like so:-
 
 ![Edgeworker Rule](images/edgeworker.png)
 
-5. Create a child rule of "Authentication" called "Token Validation". This contains the logic to check the Akamai Authentication Token and redirect to the login endpoint if it's invalid. _Note, if using Google, salt should be specified as the domain name for the organization so that you can't use any Google account to log in. You can leave salt blank for Azure_
-   - IF NOT path matches /oidc/*
-      - Validate token (just verify)
-
-![Token Validation](images/tokenvalidation.png)
-
-6. Create a child rule of "Token Validation" called "Not Valid?"
-   - IF NOT valid token
-      - Redirect /oidc/login?url={{builtin.AK_URL}}
-
-![Token Failure](images/tokenfail.png)
-
-7. Create a child rule of "Authentication" called "OpenID Token Validation". This rule needs to exist because the Edgeworker cannot talk directly to Google or Azure so the token validation requests need to proxy through Akamai. We therefore treat the IDP as an origin for any requests that are made to /oidc/token
+2. Create a child rule of "Authentication" called "OpenID Token Validation". This rule needs to exist because the Edgeworker cannot talk directly to your OpenID provider so the token validation requests need to proxy through Akamai. We therefore treat the OpenID Provider as an origin for any requests that are made to /oidc/token
    - IF path matches /oidc/token
      - Origin behaviour = Hostname = <token hostname>, Forward Host Header = origin hostname
      - Path overriden to OIDC_TOKEN_PATH
