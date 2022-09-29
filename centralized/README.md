@@ -41,7 +41,7 @@ A new rule will need to be added to your existing Property Manager property to e
 
 6. Create a child rule of "Token Validation" called "Not Valid?"
    - IF NOT valid token
-      - Redirect https://login.domain.com/oidc/login?url=https://{{builtin.AH_HOST}}{{builtin.AK_URL}}
+      - Redirect https://login.domain.com/oidc/login?url=https://{{builtin.AK_HOST}}{{builtin.AK_URL}}
 
 ![Token Failure](images/tokenfail2.png)
 
