@@ -27,7 +27,7 @@ https://developers.google.com/identity/protocols/oauth2/openid-connect
 ### Azure
 https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc
    - Authentication URL - https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
-   - Token URL - https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+   - Token Path - /{tenant}/oauth2/v2.0/token
 
 ## Edgeworker
 Download this repository. Tar and gzip the contents of the "edgeworker" folder, and deploy to Akamai using a "dynamic compute" resource tier. https://techdocs.akamai.com/edgeworkers/docs/create-a-code-bundle
