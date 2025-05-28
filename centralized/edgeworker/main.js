@@ -139,7 +139,7 @@ async function oidcCallback (oidcContext, request) {
           payload: jwtId.payload.email,
           escapeEarly: true,
         });
-        akamaitoken = ea.generateACLToken(acl);
+        akamaitoken = await ea.generateACLToken(acl);
 
 	var tok = newCookie('__token__', akamaitoken, '/');
         tok.maxAge = tokenResult.expires_in;
@@ -206,7 +206,7 @@ export async function responseProvider (request) {
   if (request.path.endsWith('/callback')) {
     return oidcCallback(oidcContext, request);
   } 
-  
+
   //if (request.path.endsWith('/logout')) {
   //  return oidcLogout(request);
   //}  
