@@ -1,7 +1,8 @@
 ////////////////////////
 // START lib/edgeauth.js
 ////////////////////////
-import { CryptoJS } from 'hmac.js';
+import { crypto } from 'crypto';
+import { base16, TextEncoder } from 'encoding';
 
 class EdgeAuth {
     constructor(options) {
@@ -52,7 +53,7 @@ class EdgeAuth {
         return text
     }
 
-    _generateToken(path, isUrl) {
+    async _generateToken(path, isUrl) {
         var startTime = this.options.startTime
         var endTime = this.options.endTime
 
@@ -85,31 +86,6 @@ class EdgeAuth {
 
         if (startTime && (endTime < startTime)) {
             throw new Error('Token will have already expired')
-        }
-
-        if (this.options.verbose) {
-            console.log("Akamai Token Generation Parameters")
-            
-            if (isUrl) {
-                console.log("    URL         : " + path)
-            } else {
-                console.log("    ACL         : " + path)
-            }
-
-            console.log("    Token Type      : " + this.options.tokenType)
-            console.log("    Token Name      : " + this.options.tokenName)
-            console.log("    Key/Secret      : " + this.options.key)
-            console.log("    Algo            : " + this.options.algorithm)
-            console.log("    Salt            : " + this.options.salt)
-            console.log("    IP              : " + this.options.ip)
-            console.log("    Payload         : " + this.options.payload)
-            console.log("    Session ID      : " + this.options.sessionId)
-            console.log("    Start Time      : " + startTime)
-            console.log("    Window(seconds) : " + this.options.windowSeconds)
-            console.log("    End Time        : " + endTime)
-            console.log("    Field Delimiter : " + this.options.fieldDelimiter)
-            console.log("    ACL Delimiter   : " + this.options.aclDelimiter)
-            console.log("    Escape Early    : " + this.options.escapeEarly)
         }
 
         var hashSource = []
@@ -147,14 +123,28 @@ class EdgeAuth {
         }
 
         this.options.algorithm = this.options.algorithm.toString().toLowerCase()        
-        if (!(this.options.algorithm == 'sha256' || this.options.algorithm == 'sha1' || this.options.algorithm == 'md5')) {
-            throw new Error('altorithm should be sha256 or sha1 or md5')
+        if (!(this.options.algorithm == 'sha256')) {
+            throw new Error('altorithm should be sha256, others are not supported')
         }
 
+        // Prepare Key
+        let format = "raw";
+        let keyData = base16.decode(this.options.key);
+        let algorithm = {
+            "name": "HMAC",
+            "hash": "SHA-256",
+        };
+        let extractable = false;
+        let keyUsages = ["sign", "verify"];
+        let key = await crypto.subtle.importKey(format, keyData.buffer, algorithm, extractable, keyUsages);
+        
+        // Prepare data
         var data = hashSource.join(this.options.fieldDelimiter)
-        const key = CryptoJS.enc.Hex.parse(this.options.key)
-        const pasedData = CryptoJS.enc.Utf8.parse(data)
-        const hmac = CryptoJS.enc.Hex.stringify(CryptoJS.HmacSHA256(pasedData, key))
+        const pasedData = new TextEncoder().encode(data)
+        
+        // Get HMAC
+        const hmacData = await crypto.subtle.sign("HMAC", key, pasedData);
+        const hmac = base16.encode(hmacData)
         
         newToken.push("hmac=" + hmac)
                 
@@ -179,4 +169,4 @@ class EdgeAuth {
     }
 }
 
-export { EdgeAuth }; 
+export { EdgeAuth };
