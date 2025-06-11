@@ -2,7 +2,7 @@
 // START lib/edgeauth.js
 ////////////////////////
 import { crypto } from 'crypto';
-import {TextEncoder} from 'encoding';
+import { base16, TextEncoder } from 'encoding';
 
 class EdgeAuth {
     constructor(options) {
@@ -48,30 +48,6 @@ class EdgeAuth {
         } 
         return text
     }
-
-	_computeHMACFromHexKey(data, key) {
-	  const hexToBytes = hex =>
-	    new Uint8Array(key.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
-	  const keyBytes = hexToBytes(key);
-
-	  const encoder = new TextEncoder();
-	  const dataBytes = encoder.encode(data);
-
-	  return crypto.subtle.importKey(
-	    "raw",
-	    keyBytes,
-	    { name: "HMAC", hash: "SHA-256" },
-	    false,
-	    ["sign"]
-	  )
-	  .then(cryptoKey => crypto.subtle.sign("HMAC", cryptoKey, dataBytes))
-	  .then(signature => {
-	    const hmacHex = Array.from(new Uint8Array(signature))
-	      .map(b => b.toString(16).padStart(2, "0"))
-	      .join("");
-	    return hmacHex;
-	  });
-	}
 
     async _generateToken(path, isUrl) {
         var startTime = this.options.startTime
@@ -142,9 +118,29 @@ class EdgeAuth {
             hashSource.push("salt=" + this.options.salt)
         }
 
-        var data = hashSource.join(this.options.fieldDelimiter)
+        this.options.algorithm = this.options.algorithm.toString().toLowerCase()        
+        if (!(this.options.algorithm == 'sha256')) {
+            throw new Error('altorithm should be sha256, others are not supported')
+        }
 
-        const hmac = await this._computeHMACFromHexKey(data, this.options.key)
+        // Prepare Key
+        let format = "raw";
+        let keyData = base16.decode(this.options.key);
+        let algorithm = {
+            "name": "HMAC",
+            "hash": "SHA-256",
+        };
+        let extractable = false;
+        let keyUsages = ["sign", "verify"];
+        let key = await crypto.subtle.importKey(format, keyData.buffer, algorithm, extractable, keyUsages);
+        
+        // Prepare data
+        var data = hashSource.join(this.options.fieldDelimiter)
+        const pasedData = new TextEncoder().encode(data)
+        
+        // Get HMAC
+        const hmacData = await crypto.subtle.sign("HMAC", key, pasedData);
+        const hmac = base16.encode(hmacData)
         
         newToken.push("hmac=" + hmac)
                 
@@ -170,4 +166,4 @@ class EdgeAuth {
     }
 }
 
-export { EdgeAuth }; 
+export { EdgeAuth };

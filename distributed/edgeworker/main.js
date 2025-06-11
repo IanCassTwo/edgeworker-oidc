@@ -10,28 +10,19 @@ import { httpRequest } from 'http-request';
 import { createResponse } from 'create-response';
 import URLSearchParams from 'url-search-params'; 
 import { Cookies, SetCookie } from 'cookies';
+import { crypto } from 'crypto';
+import { base64url } from 'encoding';
 import { EdgeAuth } from "auth/edgeauth.js";
 
 
 // Utilities - randomstring
 function randomString(len) {
-  let s = '';
-  while (s.length < len) s += (Math.random() * 36 | 0).toString(36);
-  return s;
-}
-
-// Perform a request at the support system
-async function jsonRequest(url) {
-  var j = {};
-  j.response = await httpRequest(url);
-  j.text = await j.response.text();
-  try {
-    j.json = JSON.parse(j.text);
-  } catch (e) {
-    j.error = e.toString();
-    j.errorDetail = `${j.error},text=${j.text}`;
-  }
-  return j;
+  // Output is base 64, ratio is 3/4
+  const lenInBytes = Math.ceil(len * 3 / 4);
+  let array = new Uint8Array(lenInBytes);
+  crypto.getRandomValues(array);
+  let s = base64url.encode(array);
+  return s.substring(0, len);
 }
 
 // Create a cookie in one line
@@ -41,28 +32,17 @@ function newCookie(name, val, path) {
   c.value = val;
   c.path = path;
   c.secure = true;
+  c.httpOnly = true; // Hide auth cookie from client-side JS
   return c;
 }
-
-// Edgeworks don't support atob(), so we have to implement it ourselves
-function decodeBase64url(s) {
-  var e={},i,b=0,c,x,l=0,a,r='',w=String.fromCharCode,L=s.length;
-  var A="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  for(i=0;i<64;i++){e[A.charAt(i)]=i;}
-  for(x=0;x<L;x++){
-      c=e[s.charAt(x)];b=(b<<6)+c;l+=6;
-      while(l>=8){((a=(b>>>(l-=8))&0xff)||(x<(L-2)))&&(r+=w(a));}
-  }
-  return r;
-};
 
 // Unpack the jwt - note: we should verify the signature (not possible in edgeworkers and as we request the token directly we can skip that step)
 function jwt2json(s) {
   var r = {};
   try {
     var a = s.split('.');
-    r.header = JSON.parse(decodeBase64url(a[0]));
-    r.payload = JSON.parse(decodeBase64url(a[1]));
+    r.header = JSON.parse(base64url.decode(a[0], "String"));
+    r.payload = JSON.parse(base64url.decode(a[1], "String"));
     r.signature = a[2];
   } catch (e) {
     r.error = e.toString();
@@ -135,8 +115,10 @@ async function oidcCallback (oidcContext, request) {
           key: oidcContext.akamaiSecret,
           startTime: token_start_time,
           windowSeconds: tokenResult.expires_in,
-          salt: jwtId.payload.hd,
-          payload: jwtId.payload.email,
+          // If you configured salt in Auth Token 2.0 Behavior, re-use value here
+          // salt: jwtId.payload.hd,
+          // If you want token to carry information, add it to its payload
+          // payload: jwtId.payload.email,
           escapeEarly: true,
         });
         akamaitoken = await ea.generateACLToken(acl);
