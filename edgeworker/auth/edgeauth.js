@@ -28,6 +28,10 @@ class EdgeAuth {
             this.options.aclDelimiter = '!'
         }
 
+        if (!this.options.algorithm) {
+            this.options.algorithm = 'sha256'
+        }
+
         if (this.options.verbose === undefined) {
             this.options.verbose = false
         }
@@ -140,7 +144,7 @@ class EdgeAuth {
         
         // Get HMAC
         const hmacData = await crypto.subtle.sign("HMAC", key, pasedData);
-        const hmac = base16.encode(hmacData)
+        const hmac = base16.encode(new Uint8Array(hmacData));
         
         newToken.push("hmac=" + hmac)
                 
